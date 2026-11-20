@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import "./Dashboard.css";
-import { authApi, fetchOrders as fetchOrdersApi } from "./api";
+import { authApi, fetchOrders as fetchOrdersApi, API_BASE } from "./api";
 
 function Dashboard({ user = {}, onLogout, onLogin }) {
   const iframeWrapperRef = useRef(null);
@@ -243,13 +243,17 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
   const handleDownloadGame = (item) => {
     const gameName = item.name || item.title || "Game";
     const idOrSku = item._id || item.sku || encodeURIComponent(gameName.toLowerCase().replace(/[^a-z0-9]/g, "-"));
-    const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000";
+    const base = API_BASE ? API_BASE.replace(/\/$/, "") : "";
 
     let downloadUrl = item.downloadUrl;
     if (item.storageUrl && item.storageUrl.startsWith("http")) {
       downloadUrl = item.storageUrl;
-    } else if (!downloadUrl || downloadUrl.includes("downloads.gamevault.io") || downloadUrl.startsWith("/api/")) {
-      downloadUrl = `${apiBase}/api/products/download/${idOrSku}`;
+    } else if (downloadUrl && downloadUrl.startsWith("http") && !downloadUrl.includes("downloads.gamevault.io")) {
+      // Use direct external link
+    } else if (downloadUrl && downloadUrl.startsWith("/api/")) {
+      downloadUrl = `${base}${downloadUrl}`;
+    } else {
+      downloadUrl = `${base}/api/products/download/${encodeURIComponent(item._id || idOrSku)}`;
     }
 
     const defaultExt = item.fileType || (item.uploadType === "portable_zip" ? ".zip" : ".exe");
