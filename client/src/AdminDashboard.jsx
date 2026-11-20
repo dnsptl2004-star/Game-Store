@@ -306,29 +306,70 @@ function AdminDashboard({ user, onLogout, onLogin }) {
 
     try {
       setLoading(true);
-      const editionsArray = (form.edition || form.size || "Full Game (Standard)")
+
+      let currentForm = { ...form };
+
+      // 1. If a folder was selected but not yet uploaded, package and upload it automatically now
+      if (fileMode === "folder" && selectedFolderFiles.length > 0 && !currentForm.filePath) {
+        setMessage(`📦 Uploading ${selectedFolderFiles.length} folder files and auto-zipping package...`);
+        const result = await handleFolderUploadAndZip();
+        if (result) {
+          currentForm = {
+            ...currentForm,
+            fileName: result.fileName,
+            fileType: result.fileType || ".zip",
+            fileSizeBytes: result.fileSizeBytes,
+            downloadSize: result.downloadSize,
+            fileSha256: result.fileSha256,
+            filePath: result.filePath,
+            downloadUrl: result.downloadUrl,
+            version: result.version || currentForm.version,
+            uploadType: "portable_zip",
+            isDownloadable: true,
+          };
+        }
+      } else if (fileMode === "single_file" && selectedFile && !currentForm.filePath) {
+        setMessage(`🚀 Uploading ${selectedFile.name} package...`);
+        const result = await handleChunkedFileUpload();
+        if (result) {
+          currentForm = {
+            ...currentForm,
+            fileName: result.fileName,
+            fileType: result.fileType,
+            fileSizeBytes: result.fileSizeBytes,
+            downloadSize: result.downloadSize,
+            fileSha256: result.fileSha256,
+            filePath: result.filePath,
+            downloadUrl: result.downloadUrl,
+            version: result.version || currentForm.version,
+            isDownloadable: true,
+          };
+        }
+      }
+
+      const editionsArray = (currentForm.edition || currentForm.size || "Full Game (Standard)")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
 
       const sysReqFormatted =
-        form.systemRequirements ||
-        `${form.requirementsOS}, CPU: ${form.requirementsCPU}, RAM: ${form.requirementsRAM}, GPU: ${form.requirementsGPU}, Storage: ${form.requirementsStorage}`;
+        currentForm.systemRequirements ||
+        `${currentForm.requirementsOS}, CPU: ${currentForm.requirementsCPU}, RAM: ${currentForm.requirementsRAM}, GPU: ${currentForm.requirementsGPU}, Storage: ${currentForm.requirementsStorage}`;
 
       const payload = {
-        ...form,
-        title: form.name || form.title,
-        name: form.name || form.title,
-        img: form.logoUrl || form.img,
-        price: Number(form.price) || 0,
-        discountPrice: form.discountPrice ? Number(form.discountPrice) : 0,
+        ...currentForm,
+        title: currentForm.name || currentForm.title,
+        name: currentForm.name || currentForm.title,
+        img: currentForm.logoUrl || currentForm.img,
+        price: Number(currentForm.price) || 0,
+        discountPrice: currentForm.discountPrice ? Number(currentForm.discountPrice) : 0,
         edition: editionsArray,
         size: editionsArray,
-        brand: form.publisher || form.brand || form.developer || "GameVault",
-        fabric: form.platform || "PC (Windows 10/11)",
-        occasion: form.genre || "Action & Adventure",
+        brand: currentForm.publisher || currentForm.brand || currentForm.developer || "GameVault",
+        fabric: currentForm.platform || "PC (Windows 10/11)",
+        occasion: currentForm.genre || "Action & Adventure",
         systemRequirements: sysReqFormatted,
-        isFree: Number(form.price) === 0,
+        isFree: Number(currentForm.price) === 0,
         isOnlinePlayable: false,
       };
 
@@ -501,10 +542,12 @@ function AdminDashboard({ user, onLogout, onLogin }) {
         `🎉 Folder zipped into "${result.fileName}" (${result.downloadSize})! SHA-256: ${result.fileSha256.substring(0, 16)}...`
       );
       setSelectedFolderFiles([]);
+      return result;
     } catch (err) {
       console.error("Folder upload error:", err);
       setMessage("❌ Folder upload failed: " + (err.response?.data?.error || err.message));
       setUploadStatusText("❌ Upload failed");
+      return null;
     } finally {
       setIsUploading(false);
     }
@@ -624,10 +667,12 @@ function AdminDashboard({ user, onLogout, onLogin }) {
         `🎉 Uploaded ${result.fileName} (${result.downloadSize})! SHA-256: ${result.fileSha256.substring(0, 16)}...`
       );
       setSelectedFile(null);
+      return result;
     } catch (err) {
       console.error("Chunked upload error:", err);
       setMessage("❌ Upload failed: " + (err.response?.data?.error || err.message));
       setUploadStatusText("❌ Upload failed");
+      return null;
     } finally {
       setIsUploading(false);
     }

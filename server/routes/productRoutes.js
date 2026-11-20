@@ -93,19 +93,48 @@ router.get("/download/:identifier", async (req, res) => {
     }
 
     // 2. If uploaded real binary PC game file (.exe, .zip, .rar, .7z)
+    const candidates = [];
     if (game.filePath) {
-      const candidates = [
+      candidates.push(
         path.resolve(process.cwd(), game.filePath.replace(/^\//, "")),
         path.resolve(process.cwd(), "server", game.filePath.replace(/^\//, "")),
         path.resolve(process.cwd(), "uploads", "games", path.basename(game.filePath)),
         path.resolve(process.cwd(), "server", "uploads", "games", path.basename(game.filePath)),
         path.resolve(process.cwd(), "uploads", path.basename(game.filePath)),
-        path.resolve(process.cwd(), "server", "uploads", path.basename(game.filePath)),
-      ];
+        path.resolve(process.cwd(), "server", "uploads", path.basename(game.filePath))
+      );
+    }
+    if (game.fileName) {
+      candidates.push(
+        path.resolve(process.cwd(), "uploads", "games", game.fileName),
+        path.resolve(process.cwd(), "server", "uploads", "games", game.fileName)
+      );
+    }
 
-      for (const filePathOnDisk of candidates) {
-        if (fs.existsSync(filePathOnDisk) && fs.statSync(filePathOnDisk).isFile()) {
-          const stat = fs.statSync(filePathOnDisk);
+    // Also scan uploads/games directory for any file matching game title
+    const searchDirs = [
+      path.resolve(process.cwd(), "uploads", "games"),
+      path.resolve(process.cwd(), "server", "uploads", "games"),
+    ];
+    const cleanGameName = (game.name || game.title || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    for (const sDir of searchDirs) {
+      if (fs.existsSync(sDir)) {
+        try {
+          const files = fs.readdirSync(sDir);
+          for (const f of files) {
+            const cleanF = f.toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (cleanGameName && (cleanF.includes(cleanGameName) || cleanGameName.includes(cleanF))) {
+              candidates.push(path.join(sDir, f));
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    for (const filePathOnDisk of candidates) {
+      if (fs.existsSync(filePathOnDisk) && fs.statSync(filePathOnDisk).isFile()) {
+        const stat = fs.statSync(filePathOnDisk);
+        if (stat.size > 0) {
           const ext = path.extname(filePathOnDisk).toLowerCase();
           const mimeMap = {
             ".exe": "application/x-msdownload",
@@ -122,6 +151,7 @@ router.get("/download/:identifier", async (req, res) => {
           res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(clientName)}"`);
           res.setHeader("Content-Type", contentType);
           res.setHeader("Accept-Ranges", "bytes");
+          res.setHeader("Content-Length", stat.size);
           if (game.fileSha256) res.setHeader("X-Game-SHA256", game.fileSha256);
           if (game.version) res.setHeader("X-Game-Version", game.version);
 
@@ -139,7 +169,6 @@ router.get("/download/:identifier", async (req, res) => {
             });
             return fs.createReadStream(filePathOnDisk, { start, end }).pipe(res);
           } else {
-            res.setHeader("Content-Length", stat.size);
             return fs.createReadStream(filePathOnDisk).pipe(res);
           }
         }
