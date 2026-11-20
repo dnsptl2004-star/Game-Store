@@ -107,7 +107,7 @@ productSchema.pre("save", function (next) {
   if (!this.publisher && this.brand) this.publisher = this.brand;
   if (!this.fabric && this.platform) this.fabric = this.platform;
   if (!this.occasion && this.genre) this.occasion = this.genre;
-  next();
+  if (typeof next === "function") next();
 });
 
 productSchema.index({ createdAt: -1 });

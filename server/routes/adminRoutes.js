@@ -683,9 +683,23 @@ router.post("/products", async (req, res) => {
     const body = { ...req.body };
     if (body.title && !body.name) body.name = body.title;
     if (!body.logoUrl && body.img) body.logoUrl = body.img;
-    const product = await Product.create(body);
-    res.status(201).json(product);
+
+    if (mongoose.connection.readyState === 1) {
+      const product = await Product.create(body);
+      return res.status(201).json(product);
+    }
+
+    // In-memory fallback if MongoDB connection is pending or offline
+    const newGame = {
+      _id: "game_" + Date.now(),
+      ...body,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    freeGames.unshift(newGame);
+    res.status(201).json(newGame);
   } catch (error) {
+    console.error("Create Product Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -695,9 +709,19 @@ router.put("/products/:id", async (req, res) => {
     const body = { ...req.body };
     if (body.title && !body.name) body.name = body.title;
     if (!body.logoUrl && body.img) body.logoUrl = body.img;
-    const product = await Product.findByIdAndUpdate(req.params.id, body, { new: true });
-    if (!product) return res.status(404).json({ error: "Product not found" });
-    res.json(product);
+
+    if (mongoose.connection.readyState === 1) {
+      const product = await Product.findByIdAndUpdate(req.params.id, body, { new: true });
+      if (product) return res.json(product);
+    }
+
+    const idx = freeGames.findIndex((g) => g._id === req.params.id || g.sku === req.params.id);
+    if (idx !== -1) {
+      freeGames[idx] = { ...freeGames[idx], ...body, updatedAt: new Date().toISOString() };
+      return res.json(freeGames[idx]);
+    }
+
+    res.status(404).json({ error: "Game not found" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -705,9 +729,18 @@ router.put("/products/:id", async (req, res) => {
 
 router.delete("/products/:id", async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ error: "Product not found" });
-    res.json({ message: "Game deleted successfully" });
+    if (mongoose.connection.readyState === 1) {
+      const product = await Product.findByIdAndDelete(req.params.id);
+      if (product) return res.json({ message: "Game deleted successfully" });
+    }
+
+    const idx = freeGames.findIndex((g) => g._id === req.params.id || g.sku === req.params.id);
+    if (idx !== -1) {
+      freeGames.splice(idx, 1);
+      return res.json({ message: "Game deleted successfully" });
+    }
+
+    res.status(404).json({ error: "Game not found" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
