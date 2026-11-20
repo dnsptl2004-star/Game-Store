@@ -13,6 +13,7 @@ import Order from "../models/Order.js";
 import Address from "../models/Address.js";
 import { protect, adminOnly } from "../middleware/auth.js";
 import { freeGames } from "../data/freeGames.js";
+import { zipDirectory } from "../utils/zipUtils.js";
 
 const execAsync = promisify(exec);
 const router = express.Router();
@@ -144,9 +145,29 @@ async function compressFolderToZip(sourceDir, zipFilePath) {
     fs.mkdirSync(destDir, { recursive: true });
   }
 
-  // 1. Try native bsdtar (built-in on Windows 10/11 & Linux)
+  // 1. Try pure Node zip utility (100% compliant Windows PKZIP without ./)
   try {
-    await execAsync(`tar -a -cf "${zipFilePath}" -C "${sourceDir}" .`);
+    const size = await zipDirectory(sourceDir, zipFilePath);
+    if (size > 0 && fs.existsSync(zipFilePath)) {
+      return true;
+    }
+  } catch (nodeZipErr) {
+    console.warn("[Zip] Pure Node zip fallback:", nodeZipErr.message);
+  }
+
+  // 2. Fallback to python3 / python zipfile module
+  try {
+    await execAsync(`python -m zipfile -c "${zipFilePath}" "${sourceDir}"`);
+    if (fs.existsSync(zipFilePath) && fs.statSync(zipFilePath).size > 0) {
+      return true;
+    }
+  } catch (pyErr) {
+    console.warn("[Zip] Python zipfile fallback:", pyErr.message);
+  }
+
+  // 3. Fallback to native tar
+  try {
+    await execAsync(`tar -a -cf "${zipFilePath}" -C "${sourceDir}" *`);
     if (fs.existsSync(zipFilePath) && fs.statSync(zipFilePath).size > 0) {
       return true;
     }
@@ -154,27 +175,7 @@ async function compressFolderToZip(sourceDir, zipFilePath) {
     console.warn("[Zip] tar compression fallback:", tarErr.message);
   }
 
-  // 2. Try PowerShell Compress-Archive
-  try {
-    const escapedSrc = path.join(sourceDir, "*").replace(/'/g, "''");
-    const escapedZip = zipFilePath.replace(/'/g, "''");
-    await execAsync(`powershell -NoProfile -Command "Compress-Archive -Path '${escapedSrc}' -DestinationPath '${escapedZip}' -Force"`);
-    if (fs.existsSync(zipFilePath) && fs.statSync(zipFilePath).size > 0) {
-      return true;
-    }
-  } catch (psErr) {
-    console.warn("[Zip] PowerShell Compress-Archive fallback:", psErr.message);
-  }
-
-  // 3. Fallback to python3 / python zipfile module
-  try {
-    await execAsync(`python -m zipfile -c "${zipFilePath}" "${sourceDir}"`);
-    if (fs.existsSync(zipFilePath) && fs.statSync(zipFilePath).size > 0) {
-      return true;
-    }
-  } catch (pyErr) {
-    throw new Error(`Failed to compress game folder into zip: ${pyErr.message}`);
-  }
+  return false;
 }
 
 // Unzip utility using system tar with PowerShell Expand-Archive fallback
