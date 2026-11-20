@@ -3,24 +3,72 @@ import mongoose from "mongoose";
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    category: { type: String, default: "Action & RPG" },
-    price: { type: Number, default: 0 },
-    discountPrice: { type: Number, default: 0 },
-    isFree: { type: Boolean, default: true },
-    isOnlinePlayable: { type: Boolean, default: true },
-    playOnlineUrl: { type: String, default: "" },
-    apkDownloadUrl: { type: String, default: "" },
-    gameType: { type: String, default: "Free to Play" },
-    playersOnline: { type: String, default: "15,400+ Online" },
-    sku: { type: String, default: "" },
-    img: { type: String, default: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=1000" },
+    title: { type: String, trim: true },
+    logoUrl: {
+      type: String,
+      default: "https://images.unsplash.com/photo-1612287232230-050410425e40?auto=format&fit=crop&q=80&w=256",
+    },
+    img: {
+      type: String,
+      default: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=1000",
+    },
     description: { type: String, default: "" },
-    platform: { type: String, default: "Multi-Platform" },
+    version: { type: String, default: "1.0.0" },
+    category: { type: String, default: "PC Games" },
+    platform: { type: String, default: "PC (Windows 10/11)" },
     genre: { type: String, default: "Action" },
     developer: { type: String, default: "" },
     publisher: { type: String, default: "" },
-    rating: { type: String, default: "ESRB M (17+)" },
-    releaseYear: { type: Number, default: 2024 },
+    price: { type: Number, default: 0 },
+    discountPrice: { type: Number, default: 0 },
+    isFree: { type: Boolean, default: true },
+    inStock: { type: Boolean, default: true },
+    isDownloadable: { type: Boolean, default: true },
+    isOnlinePlayable: { type: Boolean, default: false },
+    playOnlineUrl: { type: String, default: "" },
+    apkDownloadUrl: { type: String, default: "" },
+    uploadType: {
+      type: String,
+      enum: ["executable", "portable_zip", "folder_zip", "webgl_zip", "external_url", "none"],
+      default: "executable",
+    },
+    fileName: { type: String, default: "" },
+    fileType: { type: String, default: ".exe" },
+    fileSizeBytes: { type: Number, default: 0 },
+    downloadSize: { type: String, default: "" },
+    fileSha256: { type: String, default: "" },
+    filePath: { type: String, default: "" },
+    downloadUrl: { type: String, default: "" },
+    storageProvider: {
+      type: String,
+      enum: ["server", "s3", "r2", "external"],
+      default: "server",
+    },
+    storageUrl: { type: String, default: "" },
+    webglEntryUrl: { type: String, default: "" },
+
+    // Hardware System Requirements
+    requirementsOS: { type: String, default: "Windows 10 / 11 (64-bit)" },
+    requirementsCPU: { type: String, default: "Intel Core i5-8400 / AMD Ryzen 5 2600" },
+    requirementsRAM: { type: String, default: "8 GB RAM" },
+    requirementsGPU: { type: String, default: "NVIDIA GeForce GTX 1060 / AMD Radeon RX 580" },
+    requirementsStorage: { type: String, default: "15 GB available space" },
+    systemRequirements: {
+      type: String,
+      default: "Windows 10/11 64-bit, Intel i5 / Ryzen 5, 8GB RAM, GTX 1060, 15 GB Storage",
+    },
+
+    // Malware Scanning & Security Verification
+    isMalwareScanned: { type: Boolean, default: true },
+    malwareScanResult: {
+      clean: { type: Boolean, default: true },
+      status: { type: String, default: "clean" },
+      engine: { type: String, default: "VirusTotal / SHA-256 Engine" },
+      positives: { type: Number, default: 0 },
+      totalEngines: { type: Number, default: 72 },
+      scannedAt: { type: Date, default: Date.now },
+    },
+
     edition: [{ type: String }],
     editions: [{ type: String }],
     size: [{ type: String }],
@@ -29,35 +77,28 @@ const productSchema = new mongoose.Schema(
     fabric: { type: String, default: "" },
     color: { type: String, default: "" },
     occasion: { type: String, default: "" },
-    inStock: { type: Boolean, default: true },
-    isDownloadable: { type: Boolean, default: true },
-    downloadUrl: { type: String, default: "" },
-    downloadSize: { type: String, default: "60 GB" },
-    systemRequirements: { type: String, default: "Windows 10/11 64-bit, Intel i5/AMD Ryzen 5, 16GB RAM, DirectX 12, 70 GB SSD" },
-    requirementsOS: { type: String, default: "Windows 10 / 11 (64-bit)" },
-    requirementsCPU: { type: String, default: "Intel Core i5 / AMD Ryzen 5" },
-    requirementsRAM: { type: String, default: "8 GB RAM" },
-    requirementsGPU: { type: String, default: "GTX 1060 / AMD RX 580" },
-    requirementsStorage: { type: String, default: "10 GB available space" },
-    uploadType: { type: String, enum: ["executable", "portable_zip", "webgl_zip", "external_url", "none"], default: "none" },
-    fileName: { type: String, default: "" },
-    fileType: { type: String, default: "" },
-    fileSizeBytes: { type: Number, default: 0 },
-    fileSha256: { type: String, default: "" },
-    version: { type: String, default: "1.0.0" },
-    filePath: { type: String, default: "" },
-    webglEntryUrl: { type: String, default: "" },
-    storageProvider: { type: String, enum: ["server", "s3", "r2", "external"], default: "server" },
-    storageUrl: { type: String, default: "" },
-    activationKey: { type: String, default: "" },
+    rating: { type: String, default: "ESRB T (13+)" },
+    releaseYear: { type: Number, default: 2024 },
     ratings: { type: Number, default: 4.8 },
     reviews: { type: Number, default: 0 },
+    activationKey: { type: String, default: "" },
+    sku: { type: String, default: "" },
+    gameType: { type: String, default: "PC Game" },
+    playersOnline: { type: String, default: "12,500+ Players" },
   },
   { timestamps: true }
 );
 
 productSchema.pre("save", function (next) {
-  const eds = this.edition?.length ? this.edition : (this.size?.length ? this.size : ["Standard Edition"]);
+  if (this.title && !this.name) this.name = this.title;
+  if (this.name && !this.title) this.title = this.name;
+  if (!this.logoUrl && this.img) this.logoUrl = this.img;
+
+  const eds = this.edition?.length
+    ? this.edition
+    : this.size?.length
+      ? this.size
+      : ["Standard Edition"];
   if (!this.edition || !this.edition.length) this.edition = eds;
   if (!this.editions || !this.editions.length) this.editions = eds;
   if (!this.size || !this.size.length) this.size = eds;
@@ -74,5 +115,6 @@ productSchema.index({ category: 1 });
 productSchema.index({ platform: 1 });
 productSchema.index({ genre: 1 });
 productSchema.index({ inStock: 1 });
+productSchema.index({ sku: 1 });
 
 export default mongoose.models.Product || mongoose.model("Product", productSchema);

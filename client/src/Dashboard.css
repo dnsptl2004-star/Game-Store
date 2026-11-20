@@ -1992,3 +1992,88 @@
   color: #fff;
   box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
 }
+
+
+/* 🎮 GAME LOGO CARD & MODAL STYLES */
+.product-logo-badge-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
+}
+
+.card-game-square-logo {
+  width: 44px;
+  height: 44px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 240, 255, 0.6);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  background: #0f172a;
+}
+
+.card-version-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 3;
+}
+
+.detail-header-flex {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.modal-game-square-logo {
+  width: 68px;
+  height: 68px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 2.5px solid #00f0ff;
+  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.4);
+  background: #0f172a;
+  flex-shrink: 0;
+}
+
+.detail-header-text {
+  flex: 1;
+}
+
+.modal-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.modal-version-tag {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.modal-security-tag {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}

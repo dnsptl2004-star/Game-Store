@@ -863,3 +863,308 @@ td button.secondary:hover {
   color: #94a3b8;
   margin-bottom: 4px;
 }
+
+
+/* 🎮 GAME LOGO UPLOADER SECTION (1:1 Square Icon) */
+.logo-uploader-section {
+  background: rgba(16, 24, 40, 0.7);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.section-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-label-row label {
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.badge-pill {
+  background: rgba(0, 240, 255, 0.15);
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.logo-upload-flex {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.logo-preview-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.game-logo-square-preview {
+  width: 90px;
+  height: 90px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 2px solid #00f0ff;
+  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.35);
+  background: #0f172a;
+}
+
+.preview-label {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.logo-upload-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 250px;
+}
+
+/* 📁 FOLDER UPLOAD & AUTO-ZIP CARD */
+.folder-dropzone-box, .single-file-dropzone-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 2px dashed rgba(0, 240, 255, 0.35);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.clickable-drop {
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.clickable-drop:hover {
+  background: rgba(0, 240, 255, 0.05);
+  border-color: #00f0ff;
+}
+
+.action-pill-btn {
+  background: linear-gradient(135deg, #00f0ff, #3b82f6);
+  color: #000;
+  font-weight: 800;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 14px rgba(0, 240, 255, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.action-pill-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5);
+}
+
+.folder-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.folder-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.folder-big-icon {
+  font-size: 2rem;
+}
+
+.folder-meta-sub {
+  display: flex;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.folder-file-tree-preview {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.folder-file-tree-preview small {
+  color: #00f0ff;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.folder-file-tree-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.folder-file-tree-preview li {
+  color: #cbd5e1;
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.more-files-li {
+  color: #94a3b8 !important;
+  font-style: italic;
+}
+
+.btn-folder-zip {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4) !important;
+  width: 100%;
+}
+
+.btn-folder-zip:hover {
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.6) !important;
+}
+
+/* 🛡️ MALWARE SCAN & VERIFICATION ROW */
+.malware-scan-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.malware-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.malware-status-indicator .shield-icon {
+  font-size: 1.4rem;
+}
+
+.malware-status-indicator strong {
+  display: block;
+  color: #34d399;
+  font-size: 0.88rem;
+}
+
+.malware-status-indicator span {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.scan-btn {
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid #10b981;
+  color: #34d399;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scan-btn:hover {
+  background: #10b981;
+  color: #000;
+}
+
+/* 🎮 ADMIN TABLE LOGO ICON */
+.admin-product-logo-thumb {
+  width: 50px;
+  height: 50px;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1.5px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.2);
+  background: #0f172a;
+}
+
+.version-pill-tag {
+  display: inline-block;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.file-size-badge {
+  display: inline-block;
+  background: rgba(0, 240, 255, 0.12);
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.sha-table-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shield-safe-dot {
+  color: #34d399;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Access Denied */
+.admin-access-denied-card {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 16px;
+  padding: 36px;
+  text-align: center;
+  max-width: 480px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.admin-access-denied-card h2 {
+  color: #ef4444;
+  margin-bottom: 12px;
+}
