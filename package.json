@@ -1,0 +1,26 @@
+{
+    "name": "gamevault-store",
+    "private": true,
+    "scripts": {
+        "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+        "start": "node index.js",
+        "build": "npm run build --prefix client",
+        "seed:admin": "node server/seedAdmin.js",
+        "seed:products": "node server/seedProducts.js"
+    },
+    "devDependencies": {
+        "concurrently": "^9.0.0"
+    },
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "compression": "^1.8.1",
+        "cors": "^2.8.6",
+        "dotenv": "^17.4.0",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.3",
+        "mongodb": "^7.1.1",
+        "mongoose": "^9.3.3",
+        "multer": "^2.1.1"
+    },
+    "type": "module"
+}

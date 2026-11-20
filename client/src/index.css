@@ -1,0 +1,93 @@
+/* Global Design System - GameVault Next-Gen Gaming */
+:root {
+  /* Gaming Brand Palette */
+  --p-primary: #6366f1;       /* Electric Indigo */
+  --p-primary-hover: #4f46e5;
+  --p-secondary: #00f0ff;     /* Neon Cyan */
+  --p-accent: #ec4899;        /* Neon Pink */
+  --p-bg: #090d16;            /* Deep Space Gunmetal */
+  --p-surface: #111827;       /* Card Surface */
+  --p-surface-elevated: #1a2234;
+  --p-border: rgba(255, 255, 255, 0.08);
+  --p-text: #f8fafc;          /* High contrast off-white */
+  --p-muted: #94a3b8;         /* Cool Gray */
+  
+  /* Modern Tokens */
+  --p-radius: 12px;
+  --p-radius-lg: 18px;
+  --p-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --p-shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.6);
+  --p-glow: 0 0 20px rgba(99, 102, 241, 0.35);
+  --p-cyan-glow: 0 0 15px rgba(0, 240, 255, 0.3);
+  --p-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Fonts */
+  --p-font-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --p-font-display: 'Rajdhani', 'Outfit', sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--p-font-main);
+  background-color: var(--p-bg);
+  color: var(--p-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+  touch-action: manipulation;
+}
+
+button, a {
+  cursor: pointer;
+  outline: none;
+  transition: var(--p-transition);
+  font-family: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+h1, h2, h3, h4, .logo {
+  font-family: var(--p-font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Global Entrance Animation */
+@keyframes fadeInSlide {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeInSlide 0.4s ease forwards;
+}
+
+/* Gaming Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--p-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}

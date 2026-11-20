@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Subway Surfers Online - Free 3-Lane Runner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0b0f19;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 800px;
+      max-height: 600px;
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+      overflow: hidden;
+      background: #0f172a;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    }
+    #hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .hud-chip {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+    #score-val { color: #10b981; }
+    #coins-val { color: #fbbf24; }
+    #hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #hint b { color: #10b981; }
+    #game-over {
+      position: absolute;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.92);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 20;
+    }
+    #game-over h2 { font-size: 2.8rem; color: #ef4444; font-weight: 900; }
+    .restart-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.1rem;
+      padding: 14px 34px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+      transition: transform 0.15s;
+    }
+    .restart-btn:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <div id="hud">
+      <div class="hud-chip">🏃 Score: <b id="score-val">0m</b></div>
+      <div class="hud-chip">🪙 Coins: <b id="coins-val">0</b></div>
+    </div>
+
+    <div id="hint">
+      <b>[A / D or ◄ / ►]</b> Change Lane • <b>[W / ▲ / Space]</b> Jump • <b>[S / ▼]</b> Roll / Slide
+    </div>
+
+    <div id="game-over">
+      <h2>💀 CRASHED!</h2>
+      <p id="over-stats" style="font-size: 1.2rem; color: #cbd5e1;">Final Distance: 0m | Coins: 0</p>
+      <button class="restart-btn" onclick="initRunner()">RUN AGAIN</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreVal = document.getElementById('score-val');
+    const coinsVal = document.getElementById('coins-val');
+    const gameOverScreen = document.getElementById('game-over');
+    const overStats = document.getElementById('over-stats');
+
+    // Lanes (Left = 0, Mid = 1, Right = 2)
+    const laneX = [260, 400, 540];
+
+    const player = {
+      lane: 1,
+      x: 400,
+      y: 480,
+      jumpY: 0,
+      isJumping: false,
+      jumpVy: 0,
+      isRolling: false,
+      rollTimer: 0,
+      score: 0,
+      coins: 0,
+      isDead: false
+    };
+
+    let speed = 6;
+    let obstacles = [];
+    let coins = [];
+    let spawnTimer = 0;
+
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+
+      if ((k === 'a' || k === 'arrowleft') && player.lane > 0) player.lane--;
+      if ((k === 'd' || k === 'arrowright') && player.lane < 2) player.lane++;
+
+      if ((k === 'w' || k === 'arrowup' || k === ' ') && !player.isJumping) {
+        player.isJumping = true;
+        player.jumpVy = -13;
+      }
+
+      if ((k === 's' || k === 'arrowdown') && !player.isRolling) {
+        player.isRolling = true;
+        player.rollTimer = 25;
+        if (player.isJumping) {
+          player.jumpVy = 12; // fast ground slam
+        }
+      }
+    });
+
+    // Touch Controls (Swipe detection)
+    let touchStartX = 0;
+    let touchStartY = 0;
+    canvas.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+    canvas.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 30 && player.lane < 2) player.lane++;
+        if (dx < -30 && player.lane > 0) player.lane--;
+      } else {
+        if (dy < -30 && !player.isJumping) { player.isJumping = true; player.jumpVy = -13; }
+        if (dy > 30 && !player.isRolling) { player.isRolling = true; player.rollTimer = 25; }
+      }
+    });
+
+    function initRunner() {
+      player.lane = 1;
+      player.x = 400;
+      player.jumpY = 0;
+      player.isJumping = false;
+      player.isRolling = false;
+      player.score = 0;
+      player.coins = 0;
+      player.isDead = false;
+      speed = 6;
+      obstacles = [];
+      coins = [];
+      spawnTimer = 0;
+      gameOverScreen.style.display = 'none';
+    }
+
+    function spawnElements() {
+      spawnTimer++;
+      if (spawnTimer % 45 === 0) {
+        const lane = Math.floor(Math.random() * 3);
+        const type = Math.random() > 0.5 ? 'barrier' : 'train';
+        obstacles.push({
+          lane: lane,
+          y: -100,
+          w: type === 'train' ? 70 : 80,
+          h: type === 'train' ? 120 : 35,
+          type: type,
+          color: type === 'train' ? '#ef4444' : '#f59e0b'
+        });
+
+        // Spawn coins in other lane
+        const coinLane = (lane + 1 + Math.floor(Math.random() * 2)) % 3;
+        for (let i = 0; i < 3; i++) {
+          coins.push({
+            lane: coinLane,
+            y: -140 - (i * 35),
+            r: 10
+          });
+        }
+      }
+    }
+
+    function update() {
+      if (player.isDead) return;
+
+      player.score += Math.floor(speed * 0.1);
+      scoreVal.innerText = `${player.score}m`;
+      coinsVal.innerText = player.coins;
+      speed += 0.0015;
+
+      // Smooth lane movement
+      const targetX = laneX[player.lane];
+      player.x += (targetX - player.x) * 0.25;
+
+      // Jumping physics
+      if (player.isJumping) {
+        player.jumpY += player.jumpVy;
+        player.jumpVy += 0.85;
+        if (player.jumpY >= 0) {
+          player.jumpY = 0;
+          player.isJumping = false;
+        }
+      }
+
+      // Rolling
+      if (player.isRolling) {
+        player.rollTimer--;
+        if (player.rollTimer <= 0) player.isRolling = false;
+      }
+
+      spawnElements();
+
+      // Update Obstacles
+      obstacles.forEach((obs, idx) => {
+        obs.y += speed;
+        const obsX = laneX[obs.lane];
+
+        // Collision check
+        if (
+          Math.abs(player.x - obsX) < 40 &&
+          obs.y + obs.h > player.y + player.jumpY &&
+          obs.y < player.y + player.jumpY + 40
+        ) {
+          // If barrier can be jumped over
+          if (obs.type === 'barrier' && player.jumpY < -20) {
+            // Jumped safely over barrier!
+          } else {
+            // Crash!
+            player.isDead = true;
+            overStats.innerText = `Final Distance: ${player.score}m | Coins: ${player.coins} 🪙`;
+            gameOverScreen.style.display = 'flex';
+          }
+        }
+
+        if (obs.y > canvas.height + 150) obstacles.splice(idx, 1);
+      });
+
+      // Update Coins
+      coins.forEach((c, idx) => {
+        c.y += speed;
+        const cX = laneX[c.lane];
+
+        if (Math.hypot(player.x - cX, (player.y + player.jumpY) - c.y) < 32) {
+          player.coins++;
+          coins.splice(idx, 1);
+        }
+
+        if (c.y > canvas.height + 50) coins.splice(idx, 1);
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Subway Tracks (3 Lanes)
+      for (let i = 0; i < 3; i++) {
+        const lx = laneX[i];
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(lx - 45, 0, 90, canvas.height);
+
+        // Rails
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(lx - 35, 0, 4, canvas.height);
+        ctx.fillRect(lx + 31, 0, 4, canvas.height);
+
+        // Ties
+        ctx.fillStyle = '#334155';
+        for (let y = (player.score * 4) % 40; y < canvas.height; y += 40) {
+          ctx.fillRect(lx - 38, y, 76, 5);
+        }
+      }
+
+      // Draw Coins
+      coins.forEach((c) => {
+        const cx = laneX[c.lane];
+        ctx.beginPath();
+        ctx.arc(cx, c.y, c.r, 0, Math.PI * 2);
+        ctx.fillStyle = '#fbbf24';
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      // Draw Obstacles
+      obstacles.forEach((obs) => {
+        const ox = laneX[obs.lane];
+        ctx.fillStyle = obs.color;
+        ctx.shadowColor = obs.color;
+        ctx.shadowBlur = 15;
+        ctx.fillRect(ox - obs.w / 2, obs.y, obs.w, obs.h);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(ox - obs.w / 2, obs.y, obs.w, obs.h);
+      });
+
+      // Draw Player Runner
+      if (!player.isDead) {
+        ctx.save();
+        const py = player.y + player.jumpY;
+
+        // Shadow
+        ctx.beginPath();
+        ctx.ellipse(player.x, player.y + 25, 20, 8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fill();
+
+        // Surfer Body
+        ctx.fillStyle = '#10b981';
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 18;
+        if (player.isRolling) {
+          ctx.beginPath();
+          ctx.arc(player.x, py + 12, 16, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillRect(player.x - 14, py - 18, 28, 42);
+          // Head
+          ctx.beginPath();
+          ctx.arc(player.x, py - 26, 12, 0, Math.PI * 2);
+          ctx.fillStyle = '#fbbf24';
+          ctx.fill();
+          // Cap
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(player.x - 12, py - 36, 24, 8);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    initRunner();
+    loop();
+  </script>
+</body>
+</html>

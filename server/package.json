@@ -1,0 +1,30 @@
+{
+    "name": "gamevault-server",
+    "version": "1.0.0",
+    "description": "GameVault Game Store Backend API",
+    "main": "index.js",
+    "scripts": {
+        "dev": "nodemon index.js",
+        "start": "node index.js",
+        "seed:admin": "node seedAdmin.js",
+        "seed:products": "node seedProducts.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "cors": "^2.8.6",
+        "dotenv": "^16.6.1",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.3",
+        "mongodb": "^7.1.1",
+        "mongoose": "^8.23.0",
+        "multer": "^2.1.1",
+        "qrcode.react": "^4.2.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.0"
+    },
+    "type": "module"
+}

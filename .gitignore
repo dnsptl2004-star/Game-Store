@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production builds
+/client/build/
+
+# Temp upload chunk files
+uploads/temp/
+server/uploads/temp/
+
+# Environment local overrides
+.env.local
+.env.*.local
+client/.env.local
+
+# Vercel & Editor
+.vercel/
+client/.vercel/
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini

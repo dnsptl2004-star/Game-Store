@@ -1,0 +1,39 @@
+{
+  "_id": "69cf87052afaecab70fb4ceb",
+  "user": {
+    "name": "Dhruv Patel",
+    "email": "dhruv@gmail.com"
+  },
+  "items": [
+    {
+      "name": "Elden Ring: Shadow of the Erdtree",
+      "price": 3499,
+      "qty": 1,
+      "count": 1,
+      "img": "https://images.unsplash.com/photo-1534423861386-85a16f5d13fd?auto=format&fit=crop&q=80&w=1000",
+      "category": "Action & RPG",
+      "platform": "PS5",
+      "edition": "Standard Edition",
+      "size": "Standard Edition"
+    }
+  ],
+  "shippingAddress": {
+    "fullName": "Dhruv Patel",
+    "phone": "07778952523",
+    "line1": "Gayatri Divine Society/38 , Vadnagar",
+    "line2": "",
+    "city": "VADNAGAR",
+    "state": "Gujarat",
+    "pincode": "384355",
+    "landmark": ""
+  },
+  "paymentMethod": "upi",
+  "paymentStatus": "paid",
+  "orderStatus": "confirmed",
+  "totalAmount": 3499,
+  "paymentReference": "UPI-GAME-987452",
+  "merchantUpiUrl": "upi://pay?pa=gamevault@upi&pn=GameVault&am=3499&cu=INR",
+  "createdAt": "2026-11-19T09:23:17.592Z",
+  "updatedAt": "2026-11-19T09:30:00.000Z",
+  "__v": 0
+}
