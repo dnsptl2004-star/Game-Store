@@ -2,9 +2,6 @@
 node_modules/
 */node_modules/
 
-# Production builds
-/client/build/
-
 # Temp upload chunk files
 uploads/temp/
 server/uploads/temp/
