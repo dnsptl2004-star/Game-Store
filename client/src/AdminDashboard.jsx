@@ -470,7 +470,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
       for (let i = 0; i < selectedFolderFiles.length; i += BATCH_SIZE) {
         const batch = selectedFolderFiles.slice(i, i + BATCH_SIZE);
         await Promise.all(
-          batch.map(async (file, idx) => {
+          batch.map((file, idx) => {
             const formData = new FormData();
             formData.append("folderSessionId", folderSessionId);
             formData.append("relativePath", file.webkitRelativePath || file.name);
@@ -478,13 +478,14 @@ function AdminDashboard({ user, onLogout, onLogin }) {
             formData.append("totalFiles", selectedFolderFiles.length);
             formData.append("file", file);
 
-            await authApi.post("/admin/upload-folder-item", formData, {
+            return authApi.post("/admin/upload-folder-item", formData, {
               headers: { "Content-Type": "multipart/form-data" },
             });
-
-            uploadedBytes += file.size;
           })
         );
+
+        const batchBytes = batch.reduce((sum, f) => sum + (f.size || 0), 0);
+        uploadedBytes += batchBytes;
 
         const percent = Math.min(95, Math.round((uploadedBytes / (folderStats.totalBytes || 1)) * 100));
         setUploadProgress(percent);
