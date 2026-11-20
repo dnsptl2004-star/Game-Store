@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["user", "admin"], default: "user" },
     avatar: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true, bufferCommands: false }
 );
 
 export default mongoose.models.User || mongoose.model("User", userSchema);

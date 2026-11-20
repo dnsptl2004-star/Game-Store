@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import Dashboard from "./Dashboard";
 import AdminDashboard from "./AdminDashboard";
-import DisclaimerBanner from "./DisclaimerBanner";
 import { authApi } from "./api";
 
 function App() {
@@ -131,7 +130,6 @@ function App() {
   return (
     <>
       <Dashboard user={user || {}} onLogout={logout} onLogin={() => setShowAuthModal(true)} />
-      <DisclaimerBanner />
       
       {showAuthModal && (
         <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>

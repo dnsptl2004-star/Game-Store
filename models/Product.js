@@ -86,7 +86,7 @@ const productSchema = new mongoose.Schema(
     gameType: { type: String, default: "PC Game" },
     playersOnline: { type: String, default: "12,500+ Players" },
   },
-  { timestamps: true }
+  { timestamps: true, bufferCommands: false }
 );
 
 productSchema.pre("save", function (next) {

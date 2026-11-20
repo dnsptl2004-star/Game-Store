@@ -26,7 +26,6 @@ function AdminDashboard({ user, onLogout, onLogin }) {
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const logoInputRef = useRef(null);
-  const coverInputRef = useRef(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -232,7 +231,8 @@ function AdminDashboard({ user, onLogout, onLogin }) {
   };
 
   const handleEdit = (product) => {
-    setEditingId(product._id);
+    const editKey = product._id || product.sku;
+    setEditingId(editKey);
     const editionStr = Array.isArray(product.edition)
       ? product.edition.join(", ")
       : Array.isArray(product.size)
@@ -247,9 +247,9 @@ function AdminDashboard({ user, onLogout, onLogin }) {
       price: product.price || 0,
       discountPrice: product.discountPrice || 0,
       isFree: product.isFree !== false,
-      isOnlinePlayable: product.isOnlinePlayable || false,
+      isOnlinePlayable: false,
       logoUrl: product.logoUrl || product.img || "",
-      img: product.img || product.logoUrl || "",
+      img: product.logoUrl || product.img || "",
       description: product.description || "",
       platform: product.platform || product.fabric || "PC (Windows 10/11)",
       genre: product.genre || product.occasion || "Action & Adventure",
@@ -262,7 +262,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
       isDownloadable: product.isDownloadable !== false,
       downloadSize: product.downloadSize || "",
       downloadUrl: product.downloadUrl || "",
-      playOnlineUrl: product.playOnlineUrl || "",
+      playOnlineUrl: "",
       apkDownloadUrl: product.apkDownloadUrl || "",
       uploadType: product.uploadType || "portable_zip",
       fileName: product.fileName || "",
@@ -292,6 +292,9 @@ function AdminDashboard({ user, onLogout, onLogin }) {
       },
     });
     setTab("products");
+    setTimeout(() => {
+      window.scrollTo({ top: 120, behavior: "smooth" });
+    }, 60);
   };
 
   // Submit Game (Create or Update)
@@ -316,6 +319,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
         ...form,
         title: form.name || form.title,
         name: form.name || form.title,
+        img: form.logoUrl || form.img,
         price: Number(form.price) || 0,
         discountPrice: form.discountPrice ? Number(form.discountPrice) : 0,
         edition: editionsArray,
@@ -325,7 +329,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
         occasion: form.genre || "Action & Adventure",
         systemRequirements: sysReqFormatted,
         isFree: Number(form.price) === 0,
-        isOnlinePlayable: Boolean(form.playOnlineUrl || form.webglEntryUrl),
+        isOnlinePlayable: false,
       };
 
       if (editingId && editingId !== "new") {
@@ -378,38 +382,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
     }
   };
 
-  // Upload Cover Image (16:9 banner)
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
 
-    if (file.size > 25 * 1024 * 1024) {
-      setMessage("❌ Cover image too large (max 25 MB)");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const formData = new FormData();
-      formData.append("image", file);
-      const { data } = await authApi.post("/admin/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000";
-      const fullUrl = data.imageUrl?.startsWith("http") ? data.imageUrl : `${apiBase}${data.imageUrl}`;
-      setForm((prev) => ({ ...prev, img: fullUrl }));
-      setMessage("✅ Cover banner uploaded successfully");
-    } catch (err) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setForm((prev) => ({ ...prev, img: reader.result }));
-        setMessage("✅ Cover banner loaded locally");
-      };
-      reader.readAsDataURL(file);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // 2a. Handle Folder Selection (<input type="file" webkitdirectory directory multiple>)
   const handleFolderSelect = (e) => {
@@ -695,11 +668,14 @@ function AdminDashboard({ user, onLogout, onLogin }) {
     if (!window.confirm("Are you sure you want to remove this game from the catalog?")) return;
     try {
       setLoading(true);
+      // Immediately reflect deletion in the UI state
+      setProducts((prev) => prev.filter((p) => p._id !== id && p.sku !== id));
       await authApi.delete(`/admin/products/${id}`);
       setMessage("✅ Game removed from store");
       await loadProducts();
     } catch (err) {
       setMessage("❌ " + (err.response?.data?.error || err.message));
+      await loadProducts();
     } finally {
       setLoading(false);
     }
@@ -940,52 +916,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                             onChange={handleLogoUpload}
                             style={{ display: "none" }}
                           />
-                          <span className="file-hint">Recommended: 256x256 or 512x512 PNG, JPG, or WebP</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 🖼️ COVER ART IMAGE (Optional 16:9 Banner) */}
-                  <div className="input-group full cover-art-section">
-                    <div className="section-label-row">
-                      <label>🖼️ Cover Art Banner (Optional 16:9)</label>
-                      <span className="badge-pill">Banner / Poster</span>
-                    </div>
-                    <div className="cover-art-flex">
-                      {form.img && (
-                        <img
-                          src={form.img}
-                          alt="Cover Preview"
-                          className="cover-preview-img"
-                          onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=1000";
-                          }}
-                        />
-                      )}
-                      <div className="cover-art-inputs">
-                        <input
-                          name="img"
-                          placeholder="Paste Cover Image URL (https://...)"
-                          value={form.img}
-                          onChange={handleChange}
-                        />
-                        <div className="file-upload-row">
-                          <button
-                            type="button"
-                            className="file-browse-btn"
-                            onClick={() => coverInputRef.current?.click()}
-                          >
-                            📁 Upload Banner from Device
-                          </button>
-                          <input
-                            ref={coverInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            style={{ display: "none" }}
-                          />
-                          <span className="file-hint">Max 25 MB</span>
+                          <span className="file-hint">Recommended: 256x256 or 512x512 PNG, JPG, or WebP (Square 1:1)</span>
                         </div>
                       </div>
                     </div>
@@ -1324,17 +1255,8 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                     </div>
                   </div>
 
-                  {/* Play Online & APK Link */}
-                  <div className="input-group">
-                    <label>Play Online URL (HTML5 / WebGL Link)</label>
-                    <input
-                      name="playOnlineUrl"
-                      placeholder="e.g. /uploads/webgl/my-game/index.html"
-                      value={form.playOnlineUrl}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="input-group">
+                  {/* APK Link (Optional) */}
+                  <div className="input-group full">
                     <label>Android APK Download URL (Optional)</label>
                     <input
                       name="apkDownloadUrl"
@@ -1363,16 +1285,6 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                         onChange={handleChange}
                       />
                       ⚡ PC Program File Downloadable
-                    </label>
-
-                    <label className="checkbox-label">
-                      <input
-                        name="isOnlinePlayable"
-                        type="checkbox"
-                        checked={form.isOnlinePlayable}
-                        onChange={handleChange}
-                      />
-                      🌐 In-Browser HTML5 / WebGL Playable
                     </label>
                   </div>
                 </div>

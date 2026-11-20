@@ -42,12 +42,11 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
   const categories = useMemo(
     () => [
       "all",
-      "Play Online",
+      "PC Games",
+      "Action & RPG",
       "Battle Royale",
       "Multiplayer Action",
       "Shooter",
-      "Action & RPG",
-      "PC Games",
     ],
     []
   );
@@ -301,25 +300,16 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
   const renderProductCard = (p) => {
     return (
       <div key={p._id} className="product-card fade-in" onClick={() => openProductModal(p)}>
-        <div className="product-image-container">
-          <img src={p.img} alt={p.name} className="product-cover-banner" onError={handleImgError} crossOrigin="anonymous" />
-          
-          {/* Prominent Square Game Logo Overlay */}
-          <div className="product-logo-badge-overlay">
-            <img
-              src={p.logoUrl || p.img}
-              alt={`${p.name} Icon`}
-              className="card-game-square-logo"
-              onError={handleImgError}
-              crossOrigin="anonymous"
-            />
-          </div>
-
+        <div className="product-logo-container">
+          <img
+            src={p.logoUrl || p.img}
+            alt={p.name}
+            className="product-card-square-logo"
+            onError={handleImgError}
+            crossOrigin="anonymous"
+          />
           <div className="platform-tag">{p.platform || p.fabric || "PC (Windows)"}</div>
           {p.version && <div className="card-version-tag">v{p.version}</div>}
-          <div className="free-play-badge">
-            ⚡ 100% FREE
-          </div>
           {p.downloadSize && (
             <div className="digital-dl-tag">
               💾 {p.downloadSize}
@@ -329,38 +319,21 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
 
         <div className="product-body">
           <div className="product-genre-row">
-            <span className="genre-text">{p.genre || p.occasion || "Multiplayer Action"}</span>
+            <span className="genre-text">{p.genre || p.occasion || "PC Game"}</span>
             <span className="rating-pill">⭐ {p.ratings || 4.9}</span>
           </div>
 
-          <h4 className="brand-product-title">{p.name}</h4>
-
-          <div className="game-card-players">
-            <span className="online-pulse-dot">●</span> {p.playersOnline || "Active Players Online"}
-          </div>
+          <h4 className="brand-product-title">{p.name || p.title}</h4>
 
           <div className="price-row free-pricing">
-            <span className="free-price-tag">FREE TO PLAY</span>
+            <span className="free-price-tag">FREE DOWNLOAD</span>
             <span className="free-verified-badge">🛡️ Verified Clean</span>
           </div>
 
           <div className="game-card-actions">
-            {p.playOnlineUrl && (
-              <button
-                className="play-online-card-btn"
-                title="Play Online Now in Browser"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveOnlineGame(p);
-                }}
-              >
-                ▶ Play Online
-              </button>
-            )}
-
             <button
-              className="free-dl-card-btn"
-              title="Download Game Program File"
+              className="free-dl-card-btn full-width-btn"
+              title="Download PC Game Program Files"
               onClick={(e) => {
                 e.stopPropagation();
                 handleDownloadGame(p);
@@ -389,14 +362,15 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
             </button>
 
             <div className="product-details-shell luxe-grid">
-              <div className="details-img-wrap">
+              <div className="details-img-wrap logo-display-wrap">
                 <img
-                  src={selectedProduct.img}
+                  src={selectedProduct.logoUrl || selectedProduct.img}
                   alt={selectedProduct.name}
+                  className="modal-square-logo-main"
                   onError={handleImgError}
                   crossOrigin="anonymous"
                 />
-                <div className="modal-platform-badge">{selectedProduct.platform || selectedProduct.fabric || "All Platforms"}</div>
+                <div className="modal-platform-badge">{selectedProduct.platform || selectedProduct.fabric || "PC (Windows)"}</div>
               </div>
 
               <div className="details-content">
@@ -554,20 +528,8 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
                 </div>
 
                 <div className="modal-sticky-action modal-free-actions">
-                  {selectedProduct.playOnlineUrl && (
-                    <button
-                      className="play-online-hero-btn"
-                      onClick={() => {
-                        const game = selectedProduct;
-                        setSelectedProduct(null);
-                        setActiveOnlineGame(game);
-                      }}
-                    >
-                      ▶ PLAY ONLINE IN BROWSER
-                    </button>
-                  )}
                   <button
-                    className="free-download-hero-btn"
+                    className="free-download-hero-btn full-width-btn"
                     onClick={() => {
                       handleDownloadGame(selectedProduct);
                     }}
@@ -606,25 +568,15 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
       case "home":
         return (
           <section className="dashboard-home">
-            <div className="hero-banner">
-              <div className="hero-copy">
-                <span className="hero-tag">🔥 100% FREE GAMES & PLAY ONLINE PORTAL</span>
+            <div className="catalog-header-bar">
+              <div>
                 <h2>Welcome, {user?.name || "Player 1"} 🎮</h2>
-                <p>
-                  Play Free Fire, Mini Militia, BGMI, Subway Surfers, Valorant, Roblox, and 1v1.LOL instantly online in your browser or download 100% free with direct high-speed links!
+                <p className="section-subtitle">
+                  Download PC games directly with high-speed download links. Verified clean & virus-scanned.
                 </p>
-                <div className="hero-actions">
-                  <button onClick={() => setActiveTab("products")}>🎮 Explore All Free Games</button>
-                  <button
-                    className="secondary"
-                    onClick={() => {
-                      setCategoryFilter("Play Online");
-                      setActiveTab("products");
-                    }}
-                  >
-                    ▶ Play Online in Browser
-                  </button>
-                </div>
+              </div>
+              <div className="hero-actions">
+                <button onClick={() => setActiveTab("products")}>🎮 Browse All PC Games</button>
               </div>
             </div>
 
@@ -650,25 +602,25 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
               <div
                 className="platform-card-pill"
                 onClick={() => {
-                  setCategoryFilter("Play Online");
-                  setActiveTab("products");
-                }}
-              >
-                <span>🌐</span> Play Online in Browser
-              </div>
-              <div
-                className="platform-card-pill"
-                onClick={() => {
                   setCategoryFilter("Shooter");
                   setActiveTab("products");
                 }}
               >
                 <span>🎯</span> Valorant & Shooters
               </div>
+              <div
+                className="platform-card-pill"
+                onClick={() => {
+                  setCategoryFilter("PC Games");
+                  setActiveTab("products");
+                }}
+              >
+                <span>💻</span> PC Windows Games
+              </div>
             </div>
 
             <div className="section-title-wrap">
-              <h3 className="section-title">🔥 Trending Free Games & Online Play</h3>
+              <h3 className="section-title">🔥 Featured PC Games & Downloads</h3>
               <button className="view-all-link" onClick={() => setActiveTab("products")}>
                 View All Free Games →
               </button>
@@ -685,9 +637,9 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
           <section className="products">
             <div className="section-header">
               <div>
-                <h3 className="section-title">Explore Free Games & Play Online</h3>
+                <h3 className="section-title">Explore PC Games & Downloads</h3>
                 <p className="section-subtitle">
-                  Browse 100% free downloadable games, browser-playable titles, Android APKs, and multiplayer battle royales.
+                  Browse 100% free downloadable PC games with high-speed direct downloads and virus scans.
                 </p>
               </div>
 
@@ -1109,7 +1061,7 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
       <header className="navbar">
         <div className="logo-wrap" onClick={() => { setActiveTab("home"); setSelectedProduct(null); }}>
           <h1 className="logo">🎮 GameVault</h1>
-          <span>100% Free Games & Play Online</span>
+          <span>PC Games & Downloads</span>
         </div>
 
         <nav>
@@ -1124,17 +1076,7 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
               className={activeTab === "products" ? "active" : ""}
               onClick={() => { setActiveTab("products"); setSelectedProduct(null); }}
             >
-              🎮 Free Games
-            </li>
-            <li
-              className={categoryFilter === "Play Online" && activeTab === "products" ? "active" : ""}
-              onClick={() => {
-                setCategoryFilter("Play Online");
-                setActiveTab("products");
-                setSelectedProduct(null);
-              }}
-            >
-              ▶ Play Online
+              🎮 PC Games
             </li>
             <li
               className={activeTab === "cart" ? "active" : ""}
@@ -1164,7 +1106,7 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
       {/* Mobile Header (Fixed) */}
       <header className="mobile-header">
         <h1 className="logo" onClick={() => { setActiveTab("home"); setSelectedProduct(null); }}>
-          🎮 GameVault Free
+          🎮 GameVault PC Games
         </h1>
         <div className="header-actions">
           {user?.email ? (
@@ -1201,24 +1143,14 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
           <span>🏠</span> Home
         </button>
         <button
-          className={activeTab === "products" && categoryFilter !== "Play Online" ? "active" : ""}
+          className={activeTab === "products" ? "active" : ""}
           onClick={() => {
             setCategoryFilter("all");
             setActiveTab("products");
             setSelectedProduct(null);
           }}
         >
-          <span>🎮</span> Games
-        </button>
-        <button
-          className={activeTab === "products" && categoryFilter === "Play Online" ? "active" : ""}
-          onClick={() => {
-            setCategoryFilter("Play Online");
-            setActiveTab("products");
-            setSelectedProduct(null);
-          }}
-        >
-          <span>▶</span> Online
+          <span>🎮</span> PC Games
         </button>
         <button
           className={activeTab === "cart" ? "active" : ""}
