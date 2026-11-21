@@ -169,10 +169,10 @@ router.get("/:id/download", async (req, res) => {
 });
 
 /**
- * GET /games/:id/play or /games/:id/play/*
+ * GET /games/:id/play or /games/:id/play/*splat
  * Serves game play either via Storj link sharing or fallback presigned stream
  */
-router.get(["/:id/play", "/:id/play/*"], async (req, res) => {
+router.get(["/:id/play", "/:id/play/*splat"], async (req, res) => {
   try {
     const game = await Game.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
     if (!game) {
@@ -183,7 +183,8 @@ router.get(["/:id/play", "/:id/play/*"], async (req, res) => {
       return res.status(400).send(`Game is not ready to play yet (status: ${game.status})`);
     }
 
-    const subPath = req.params[0] ? req.params[0].replace(/^\/+/, "") : game.entryFile || "index.html";
+    const rawSub = req.params.splat || req.params[0] || "";
+    const subPath = rawSub ? rawSub.replace(/^\/+/, "") : game.entryFile || "index.html";
 
     // Storj link-sharing option first
     if (storage.storageConfig.publicAccessGrant) {
