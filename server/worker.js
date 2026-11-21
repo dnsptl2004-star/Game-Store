@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { processGameJob } from "./gameExtractor.js";
 import Game from "./models/Game.js";
 
@@ -44,6 +45,13 @@ class ProcessingQueue {
    * Recovers any games left interrupted in 'verifying' or 'extracting' state
    */
   async recoverInterruptedJobs() {
+    if (mongoose.connection.readyState !== 1) {
+      mongoose.connection.once("connected", () => {
+        this.recoverInterruptedJobs();
+      });
+      return;
+    }
+
     try {
       const pending = await Game.find({
         status: { $in: ["verifying", "extracting"] },

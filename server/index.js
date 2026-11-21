@@ -286,9 +286,9 @@ app.use((req, res) => {
 async function connectDB() {
   const rawUris = [
     process.env.MONGO_URI,
+    "mongodb+srv://Dhruv:Dhruv123@cluster0.ddark6d.mongodb.net/game_store?retryWrites=true&w=majority",
     "mongodb://127.0.0.1:27017/game_store",
     "mongodb://localhost:27017/game_store",
-    "mongodb+srv://Dhruv:Dhruv123@cluster0.ddark6d.mongodb.net/game_store?retryWrites=true&w=majority",
   ].filter(Boolean);
 
   const uris = Array.from(new Set(rawUris));
