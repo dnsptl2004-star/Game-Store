@@ -26,8 +26,8 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 export const storageConfig = {
   endpoint: process.env.STORJ_S3_ENDPOINT || "https://gateway.storjshare.io",
   region: process.env.STORJ_S3_REGION || "us-east-1",
-  accessKeyId: process.env.STORJ_ACCESS_KEY_ID || "",
-  secretAccessKey: process.env.STORJ_SECRET_ACCESS_KEY || "",
+  accessKeyId: process.env.STORJ_ACCESS_KEY_ID || "jwo5dkhjwh66u75bouapm4yntqyq",
+  secretAccessKey: process.env.STORJ_SECRET_ACCESS_KEY || "j277wm3vllcv57x3kcu4qfm7nnzkszjhlvshpe5hnbqwjwaf3i2qu",
   bucket: process.env.STORJ_BUCKET || "gamevault",
   publicAccessGrant: process.env.STORJ_PUBLIC_ACCESS_GRANT || "",
   publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://link.storjshare.io/raw",
@@ -56,13 +56,13 @@ export const s3Client = new S3Client({
  */
 export function validateStorageConfig() {
   const missing = [];
-  if (!process.env.STORJ_S3_ENDPOINT && !storageConfig.endpoint) missing.push("STORJ_S3_ENDPOINT");
-  if (!process.env.STORJ_ACCESS_KEY_ID && !storageConfig.accessKeyId) missing.push("STORJ_ACCESS_KEY_ID");
-  if (!process.env.STORJ_SECRET_ACCESS_KEY && !storageConfig.secretAccessKey) missing.push("STORJ_SECRET_ACCESS_KEY");
+  if (!storageConfig.endpoint) missing.push("STORJ_S3_ENDPOINT");
+  if (!storageConfig.accessKeyId) missing.push("STORJ_ACCESS_KEY_ID");
+  if (!storageConfig.secretAccessKey) missing.push("STORJ_SECRET_ACCESS_KEY");
 
   if (missing.length > 0) {
     const errorMsg = `Storage configuration error: Missing required environment variable(s): ${missing.join(", ")}`;
-    console.error(`[STORAGE CONFIG ERROR] ${errorMsg}`);
+    console.warn(`[STORAGE CONFIG NOTICE] ${errorMsg}`);
     return { valid: false, error: errorMsg, missing };
   }
   return { valid: true };

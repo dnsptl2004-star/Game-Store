@@ -14,3 +14,11 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: STORJ_S3_ENDPOINT
+        value: https://gateway.storjshare.io
+      - key: STORJ_ACCESS_KEY_ID
+        value: jwo5dkhjwh66u75bouapm4yntqyq
+      - key: STORJ_SECRET_ACCESS_KEY
+        value: j277wm3vllcv57x3kcu4qfm7nnzkszjhlvshpe5hnbqwjwaf3i2qu
+      - key: PUBLIC_BASE_URL
+        value: https://link.storjshare.io/raw

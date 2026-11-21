@@ -335,17 +335,19 @@ app.listen(PORT, () => {
   connectDB().catch((err) => console.warn("connectDB error:", err.message));
 
   // Validate Storage Config and Bucket Access on Startup
-  validateStorageConfig();
-  testBucketAccess()
-    .then(() => {
-      console.log("☁️  Storj S3 Gateway storage initialized & bucket access verified");
-      cleanupStaleUploads(24);
-      setInterval(() => cleanupStaleUploads(24), 60 * 60 * 1000);
-      processingQueue.recoverInterruptedJobs();
-    })
-    .catch((err) => {
-      console.error("❌ Storage Initialization Failed:", err.message);
-    });
+  const configCheck = validateStorageConfig();
+  if (configCheck.valid) {
+    testBucketAccess()
+      .then(() => {
+        console.log("☁️  Storj S3 Gateway storage initialized & bucket access verified");
+        cleanupStaleUploads(24);
+        setInterval(() => cleanupStaleUploads(24), 60 * 60 * 1000);
+        processingQueue.recoverInterruptedJobs();
+      })
+      .catch((err) => {
+        console.warn("⚠️ Storage Access Notice:", err.message);
+      });
+  }
 });
 
 export default app;
