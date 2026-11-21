@@ -22,6 +22,10 @@ import User from "./models/User.js";
 import productRoutes from "./routes/productRoutes.js";
 import checkoutRoutes from "./routes/checkoutRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import gameRoutes from "./routes/gameRoutes.js";
+import storage, { validateStorageConfig, testBucketAccess, cleanupStaleUploads } from "./storage.js";
+import processingQueue from "./worker.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -233,6 +237,12 @@ app.use("/api/products", productRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/admin", adminRoutes);
 
+// ✅ Storj S3 Gateway & Resumable Upload Routes
+app.use("/api/uploads", uploadRoutes);
+app.use("/uploads", uploadRoutes);
+app.use("/api/games", gameRoutes);
+app.use("/games", gameRoutes);
+
 // ✅ Serve Client Production Build (Live Single-Port Mode)
 const clientBuildDirs = [
   path.join(__dirname, "client/build"),
@@ -323,6 +333,19 @@ async function connectDB() {
 app.listen(PORT, () => {
   console.log(`🎮 GameVault Server running on http://localhost:${PORT}`);
   connectDB().catch((err) => console.warn("connectDB error:", err.message));
+
+  // Validate Storage Config and Bucket Access on Startup
+  validateStorageConfig();
+  testBucketAccess()
+    .then(() => {
+      console.log("☁️  Storj S3 Gateway storage initialized & bucket access verified");
+      cleanupStaleUploads(24);
+      setInterval(() => cleanupStaleUploads(24), 60 * 60 * 1000);
+      processingQueue.recoverInterruptedJobs();
+    })
+    .catch((err) => {
+      console.error("❌ Storage Initialization Failed:", err.message);
+    });
 });
 
 export default app;

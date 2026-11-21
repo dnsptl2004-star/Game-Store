@@ -6,10 +6,15 @@ node_modules/
 uploads/temp/
 server/uploads/temp/
 
-# Environment local overrides
-.env.local
-.env.*.local
+# Environment files
+.env
+.env.*
+!.env.example
+client/.env
 client/.env.local
+server/.env
+server/.env.*
+!server/.env.example
 
 # Vercel & Editor
 .vercel/

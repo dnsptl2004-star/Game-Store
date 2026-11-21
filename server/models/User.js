@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: "" },
     role: { type: String, enum: ["user", "admin"], default: "user" },
     avatar: { type: String, default: "" },
+    usedQuotaBytes: { type: Number, default: 0 },
   },
   { timestamps: true, bufferCommands: false }
 );

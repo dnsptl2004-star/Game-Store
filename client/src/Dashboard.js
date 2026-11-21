@@ -251,6 +251,8 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
       // Use direct external link
     } else if (downloadUrl && downloadUrl.startsWith("/api/")) {
       downloadUrl = `${base}${downloadUrl}`;
+    } else if (item.storageProvider === "s3" || item.sku) {
+      downloadUrl = `${base}/api/games/${encodeURIComponent(item.sku || item.id || item._id)}/download`;
     } else {
       downloadUrl = `${base}/api/products/download/${encodeURIComponent(item._id || idOrSku)}`;
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import "./AdminDashboard.css";
 import { authApi } from "./api";
+import StorjResumableUploader from "./storjUploader";
 
 function AdminDashboard({ user, onLogout, onLogin }) {
   const [tab, setTab] = useState("products");
@@ -21,11 +22,15 @@ function AdminDashboard({ user, onLogout, onLogin }) {
   const [uploadStatusText, setUploadStatusText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSpeed, setUploadSpeed] = useState("");
+  const [uploadEta, setUploadEta] = useState("");
+  const [isPaused, setIsPaused] = useState(false);
+  const [corsFallbackNotice, setCorsFallbackNotice] = useState(false);
   const [isScanningMalware, setIsScanningMalware] = useState(false);
 
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const logoInputRef = useRef(null);
+  const uploaderRef = useRef(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -456,111 +461,120 @@ function AdminDashboard({ user, onLogout, onLogin }) {
     setMessage(`📂 Selected folder "${folderRootName}" with ${files.length} files (${formatBytes(totalBytes)})`);
   };
 
-  // 2a. Upload Folder & Automatically Zip on Server
+  // 2a. Upload Folder & Automatically Zip using Browser Streaming & Storj S3 Gateway
   const handleFolderUploadAndZip = async () => {
     if (!selectedFolderFiles.length) {
       setMessage("❌ Please choose a game folder first");
       return;
     }
 
-    const max5GB = 5 * 1024 * 1024 * 1024;
-    if (folderStats.totalBytes > max5GB) {
-      setMessage("❌ Folder contents exceed 5 GB maximum limit");
+    const max10GB = 10 * 1024 * 1024 * 1024;
+    if (folderStats.totalBytes > max10GB) {
+      setMessage("❌ Folder contents exceed 10 GB maximum limit");
       return;
     }
 
     setIsUploading(true);
+    setIsPaused(false);
+    setCorsFallbackNotice(false);
     setUploadProgress(0);
     setUploadSpeed("0 MB/s");
-    setUploadStatusText(`Uploading ${selectedFolderFiles.length} files from "${folderStats.name}"...`);
+    setUploadEta("");
+    setUploadStatusText(`Preparing streaming zip package from "${folderStats.name}"...`);
 
-    const folderSessionId = `folder_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    const startTime = Date.now();
-    let uploadedBytes = 0;
+    const fakeFile = {
+      name: `${folderStats.name}.zip`,
+      size: folderStats.totalBytes,
+      lastModified: Date.now(),
+    };
+
+    const uploader = new StorjResumableUploader({
+      concurrency: 3,
+      maxRetries: 5,
+      onProgress: ({ percent, speed, eta, partsCompleted, totalParts }) => {
+        setUploadProgress(percent);
+        if (speed) setUploadSpeed(speed);
+        if (eta) setUploadEta(eta);
+        setUploadStatusText(`Uploading to Storj S3: Part ${partsCompleted}/${totalParts} (${percent}%)`);
+      },
+      onStatus: (statusText) => setUploadStatusText(statusText),
+      onCorsFallback: () => {
+        setCorsFallbackNotice(true);
+        setMessage("⚠️ Gateway CORS detected: seamlessly switched to streaming server proxy.");
+      },
+    });
+
+    uploaderRef.current = uploader;
 
     try {
-      // Stream files in parallel batches of 5
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < selectedFolderFiles.length; i += BATCH_SIZE) {
-        const batch = selectedFolderFiles.slice(i, i + BATCH_SIZE);
-        await Promise.all(
-          batch.map((file, idx) => {
-            const formData = new FormData();
-            formData.append("folderSessionId", folderSessionId);
-            formData.append("relativePath", file.webkitRelativePath || file.name);
-            formData.append("fileIndex", i + idx);
-            formData.append("totalFiles", selectedFolderFiles.length);
-            formData.append("file", file);
+      await uploader.startUpload(
+        fakeFile,
+        {
+          title: form.name || folderStats.name,
+          description: form.description,
+          version: form.version,
+          systemRequirements: form.systemRequirements,
+          logoUrl: form.logoUrl,
+          coverImage: form.img,
+        },
+        true,
+        selectedFolderFiles
+      );
 
-            return authApi.post("/admin/upload-folder-item", formData, {
-              headers: { "Content-Type": "multipart/form-data" },
-            });
-          })
-        );
-
-        const batchBytes = batch.reduce((sum, f) => sum + (f.size || 0), 0);
-        uploadedBytes += batchBytes;
-
-        const percent = Math.min(95, Math.round((uploadedBytes / (folderStats.totalBytes || 1)) * 100));
-        setUploadProgress(percent);
-
-        const elapsed = (Date.now() - startTime) / 1000;
-        const speed = elapsed > 0 ? (uploadedBytes / (1024 * 1024) / elapsed).toFixed(1) : "0";
-        setUploadSpeed(`${speed} MB/s`);
-        setUploadStatusText(
-          `Uploaded ${Math.min(i + BATCH_SIZE, selectedFolderFiles.length)} / ${selectedFolderFiles.length} files (${percent}%) - ${speed} MB/s`
-        );
-      }
-
-      setUploadStatusText("⚡ Auto-zipping folder into single portable package on server & computing SHA-256...");
-
-      const { data: result } = await authApi.post("/admin/upload-folder-complete", {
-        folderSessionId,
-        gameTitle: form.name || folderStats.name,
-        version: form.version || "1.0.0",
-        folderName: folderStats.name,
-      });
-
+      const gameId = uploader.gameId;
       setUploadProgress(100);
-      setUploadStatusText("✅ Folder zipped & packaged successfully!");
+      setUploadStatusText("✅ Uploaded and deployed to Storj!");
+
+      const downloadUrl = `/api/games/${gameId}/download`;
+      const playUrl = `/api/games/${gameId}/play`;
 
       setForm((prev) => ({
         ...prev,
-        fileName: result.fileName,
-        fileType: result.fileType || ".zip",
-        fileSizeBytes: result.fileSizeBytes,
-        downloadSize: result.downloadSize,
-        fileSha256: result.fileSha256,
-        filePath: result.filePath,
-        downloadUrl: result.downloadUrl,
-        version: result.version || prev.version,
-        uploadType: "portable_zip",
+        fileName: `${folderStats.name}_Package.zip`,
+        fileType: ".zip",
+        fileSizeBytes: folderStats.totalBytes,
+        downloadSize: folderStats.humanSize,
+        downloadUrl,
+        playOnlineUrl: playUrl,
+        storageProvider: "s3",
+        storageUrl: `zips/${gameId}.zip`,
         isDownloadable: true,
+        isOnlinePlayable: true,
+        sku: gameId,
       }));
 
-      setMessage(
-        `🎉 Folder zipped into "${result.fileName}" (${result.downloadSize})! SHA-256: ${result.fileSha256.substring(0, 16)}...`
-      );
+      setMessage(`🎉 Successfully uploaded and processed "${folderStats.name}" on Storj!`);
       setSelectedFolderFiles([]);
-      return result;
+      await loadProducts();
+      return { gameId, downloadUrl };
     } catch (err) {
-      console.error("Folder upload error:", err);
-      setMessage("❌ Folder upload failed: " + (err.response?.data?.error || err.message));
-      setUploadStatusText("❌ Upload failed");
+      console.error("Storj folder upload error:", err);
+      setMessage("❌ Upload failed: " + err.message);
+      setUploadStatusText("❌ Upload failed: " + err.message);
       return null;
     } finally {
       setIsUploading(false);
+      uploaderRef.current = null;
     }
   };
 
-  // 2b. Handle Single File Selection (.exe, .zip, .rar)
+  // 2b. Handle Single File Selection (.zip)
   const handleSingleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (!file.name.toLowerCase().endsWith(".zip")) {
+      setMessage(`❌ Invalid file "${file.name}". Please select a .zip package.`);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024 * 1024) {
+      setMessage(`❌ File exceeds the 10 GB maximum limit (${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB)`);
+      return;
+    }
+
     setSelectedFile(file);
     const ext = "." + file.name.split(".").pop().toLowerCase();
-    const upType = ext === ".exe" ? "executable" : "portable_zip";
 
     setForm((prev) => ({
       ...prev,
@@ -568,113 +582,132 @@ function AdminDashboard({ user, onLogout, onLogin }) {
       fileType: ext,
       fileSizeBytes: file.size,
       downloadSize: formatBytes(file.size),
-      uploadType: upType,
+      uploadType: "portable_zip",
       name: prev.name || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
     }));
 
-    setMessage(`📄 Selected file: ${file.name} (${formatBytes(file.size)})`);
+    setMessage(`📄 Selected package: ${file.name} (${formatBytes(file.size)})`);
   };
 
-  // 2b. Upload Single File via 5 GB Chunked Engine
+  // 2b. Upload Single File (.zip) via Storj S3 Gateway
   const handleChunkedFileUpload = async () => {
     const file = selectedFile;
     if (!file) {
-      setMessage("❌ Please select a game program file (.exe, .zip, .rar)");
+      setMessage("❌ Please select a game package (.zip)");
       return;
     }
 
-    const max5GB = 5 * 1024 * 1024 * 1024;
-    if (file.size > max5GB) {
-      setMessage("❌ File exceeds 5 GB maximum limit");
+    const max10GB = 10 * 1024 * 1024 * 1024;
+    if (file.size > max10GB) {
+      setMessage("❌ File size exceeds 10 GB maximum limit");
       return;
     }
 
     setIsUploading(true);
+    setIsPaused(false);
+    setCorsFallbackNotice(false);
     setUploadProgress(0);
     setUploadSpeed("0 MB/s");
-    setUploadStatusText(`Initializing 5 GB chunked upload for ${file.name}...`);
+    setUploadEta("");
+    setUploadStatusText(`Initializing 10 GB Storj resumable upload for ${file.name}...`);
+
+    const uploader = new StorjResumableUploader({
+      concurrency: 3,
+      maxRetries: 5,
+      onProgress: ({ percent, speed, eta, partsCompleted, totalParts }) => {
+        setUploadProgress(percent);
+        if (speed) setUploadSpeed(speed);
+        if (eta) setUploadEta(eta);
+        setUploadStatusText(`Uploading to Storj: Part ${partsCompleted}/${totalParts} (${percent}%)`);
+      },
+      onStatus: (statusText) => setUploadStatusText(statusText),
+      onCorsFallback: () => {
+        setCorsFallbackNotice(true);
+        setMessage("⚠️ Gateway CORS detected: seamlessly switched to streaming server proxy.");
+      },
+    });
+
+    uploaderRef.current = uploader;
 
     try {
-      const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB per slice
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      const currentUploadType = form.uploadType || "executable";
+      await uploader.startUpload(
+        file,
+        {
+          title: form.name || file.name.replace(/\.zip$/i, ""),
+          description: form.description,
+          version: form.version,
+          systemRequirements: form.systemRequirements,
+          logoUrl: form.logoUrl,
+          coverImage: form.img,
+        },
+        false,
+        []
+      );
 
-      const { data: initData } = await authApi.post("/admin/upload-chunk/init", {
-        fileName: file.name,
-        fileSize: file.size,
-        totalChunks,
-        uploadType: currentUploadType,
-        gameTitle: form.name || file.name,
-      });
-
-      const { uploadId } = initData;
-      let uploadedBytes = 0;
-      const startTime = Date.now();
-
-      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunkBlob = file.slice(start, end);
-
-        const formData = new FormData();
-        formData.append("uploadId", uploadId);
-        formData.append("chunkIndex", chunkIndex);
-        formData.append("totalChunks", totalChunks);
-        formData.append("chunk", chunkBlob, `part_${chunkIndex}`);
-
-        await authApi.post("/admin/upload-chunk", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        uploadedBytes += chunkBlob.size;
-        const percent = Math.round((uploadedBytes / file.size) * 100);
-        setUploadProgress(percent);
-
-        const elapsed = (Date.now() - startTime) / 1000;
-        const speed = elapsed > 0 ? (uploadedBytes / (1024 * 1024) / elapsed).toFixed(1) : "0";
-        setUploadSpeed(`${speed} MB/s`);
-        setUploadStatusText(`Uploading chunk ${chunkIndex + 1}/${totalChunks} (${percent}%) - ${speed} MB/s`);
-      }
-
-      setUploadStatusText("Assembling binary package & computing SHA-256 hash...");
-
-      const { data: result } = await authApi.post("/admin/upload-chunk/complete", {
-        uploadId,
-        fileName: file.name,
-        totalChunks,
-        uploadType: currentUploadType,
-        version: form.version || "1.0.0",
-        gameTitle: form.name || file.name,
-      });
-
+      const gameId = uploader.gameId;
       setUploadProgress(100);
-      setUploadStatusText("✅ Chunked upload & verification complete!");
+      setUploadStatusText("✅ Uploaded and deployed to Storj!");
+
+      const downloadUrl = `/api/games/${gameId}/download`;
+      const playUrl = `/api/games/${gameId}/play`;
 
       setForm((prev) => ({
         ...prev,
-        fileName: result.fileName,
-        fileType: result.fileType,
-        fileSizeBytes: result.fileSizeBytes,
-        downloadSize: result.downloadSize,
-        fileSha256: result.fileSha256,
-        filePath: result.filePath,
-        downloadUrl: result.downloadUrl,
-        version: result.version || prev.version,
+        fileName: file.name,
+        fileType: ".zip",
+        fileSizeBytes: file.size,
+        downloadSize: formatBytes(file.size),
+        downloadUrl,
+        playOnlineUrl: playUrl,
+        storageProvider: "s3",
+        storageUrl: `zips/${gameId}.zip`,
         isDownloadable: true,
+        isOnlinePlayable: true,
+        sku: gameId,
       }));
 
-      setMessage(
-        `🎉 Uploaded ${result.fileName} (${result.downloadSize})! SHA-256: ${result.fileSha256.substring(0, 16)}...`
-      );
+      setMessage(`🎉 Successfully uploaded and processed "${file.name}" on Storj!`);
       setSelectedFile(null);
-      return result;
+      await loadProducts();
+      return { gameId, downloadUrl };
     } catch (err) {
-      console.error("Chunked upload error:", err);
-      setMessage("❌ Upload failed: " + (err.response?.data?.error || err.message));
-      setUploadStatusText("❌ Upload failed");
+      console.error("Storj file upload error:", err);
+      setMessage("❌ Upload failed: " + err.message);
+      setUploadStatusText("❌ Upload failed: " + err.message);
       return null;
     } finally {
       setIsUploading(false);
+      uploaderRef.current = null;
+    }
+  };
+
+  const handlePauseUpload = () => {
+    if (uploaderRef.current) {
+      uploaderRef.current.pause();
+      setIsPaused(true);
+      setUploadStatusText("Upload paused by user");
+    }
+  };
+
+  const handleResumeUpload = () => {
+    if (uploaderRef.current) {
+      setIsPaused(false);
+      if (fileMode === "folder") {
+        handleFolderUploadAndZip();
+      } else {
+        handleChunkedFileUpload();
+      }
+    }
+  };
+
+  const handleCancelUpload = async () => {
+    if (uploaderRef.current) {
+      await uploaderRef.current.abort();
+      setIsUploading(false);
+      setIsPaused(false);
+      setUploadProgress(0);
+      setUploadStatusText("Upload cancelled");
+      uploaderRef.current = null;
     }
   };
 
@@ -971,10 +1004,10 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                   <div className="input-group full game-uploader-card">
                     <div className="uploader-header">
                       <div>
-                        <h5>⚡ Add Game Program Files (Up to 5 GB)</h5>
-                        <p>Choose the game's entire folder (auto-zipped on server) or a single setup.exe, ZIP, or RAR package.</p>
+                        <h5>⚡ Add Game Program Files (Up to 10 GB with Storj S3 Gateway)</h5>
+                        <p>Upload a game folder (stream-zipped directly in browser) or a single .zip package up to 10 GB with resumable chunked S3 streaming.</p>
                       </div>
-                      <span className="uploader-badge">5 GB Engine</span>
+                      <span className="uploader-badge">10 GB Resumable Engine (Storj S3)</span>
                     </div>
 
                     <div className="upload-type-tabs">
@@ -993,10 +1026,10 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                         className={fileMode === "single_file" ? "type-tab active" : "type-tab"}
                         onClick={() => {
                           setFileMode("single_file");
-                          setForm((p) => ({ ...p, uploadType: "executable" }));
+                          setForm((p) => ({ ...p, uploadType: "portable_zip" }));
                         }}
                       >
-                        💻 Choose File (.exe, .zip, .rar)
+                        💻 Choose File (.zip)
                       </button>
                       <button
                         type="button"
@@ -1006,7 +1039,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                           setForm((p) => ({ ...p, uploadType: "external_url" }));
                         }}
                       >
-                        ☁️ Cloud Storage URL (R2 / S3)
+                        ☁️ Cloud Storage URL (Storj / R2 / S3)
                       </button>
                     </div>
 
@@ -1064,7 +1097,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                                 className="btn-start-upload btn-folder-zip"
                                 onClick={handleFolderUploadAndZip}
                               >
-                                📦 Upload & Auto-Zip Game Folder (Single Download File)
+                                📦 Upload & Stream-Zip Folder to Storj S3 (Up to 10 GB)
                               </button>
                             )}
                           </div>
@@ -1075,7 +1108,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                           >
                             <span className="upload-cloud-icon">📂</span>
                             <strong>Click "Choose Folder" to select game directory</strong>
-                            <span>Selects all game files, subfolders, and executables, preserving folder structure and auto-zipping on server</span>
+                            <span>Streams folder directly into a 64 MB chunked Storj upload without buffering whole file in RAM</span>
                             <button type="button" className="action-pill-btn">
                               📁 Choose Folder
                             </button>
@@ -1090,7 +1123,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                         <input
                           ref={fileInputRef}
                           type="file"
-                          accept=".exe,.msi,.zip,.rar,.7z"
+                          accept=".zip"
                           onChange={handleSingleFileSelect}
                           style={{ display: "none" }}
                         />
@@ -1100,7 +1133,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                             <span className="file-icon">📄</span>
                             <div>
                               <strong>{selectedFile.name}</strong>
-                              <span>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB ({selectedFile.type || "Game File"})</span>
+                              <span>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB ({selectedFile.type || "ZIP Archive"})</span>
                             </div>
                             <button
                               type="button"
@@ -1117,10 +1150,10 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                             onClick={() => fileInputRef.current?.click()}
                           >
                             <span className="upload-cloud-icon">💻</span>
-                            <strong>Click "Choose File" to select installer or archive</strong>
-                            <span>Upload setup.exe, game.zip, or game.rar (Up to 5 GB chunked resumable upload)</span>
+                            <strong>Click "Choose File" to select .zip package</strong>
+                            <span>Resumable 64 MB chunked upload directly to Storj S3 Gateway (Up to 10 GB)</span>
                             <button type="button" className="action-pill-btn">
-                              📄 Choose File (.exe, .zip, .rar)
+                              📄 Choose .zip Package
                             </button>
                           </div>
                         )}
@@ -1132,7 +1165,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                               className="btn-start-upload"
                               onClick={handleChunkedFileUpload}
                             >
-                              🚀 Upload via 5 GB Chunked Engine
+                              🚀 Upload via 10 GB Storj Resumable Engine
                             </button>
                           </div>
                         )}
@@ -1143,10 +1176,10 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                     {fileMode === "cloud_url" && (
                       <div className="cloud-url-box fade-in">
                         <div className="input-group full">
-                          <label>Direct Cloud Storage Download Link (Cloudflare R2 / Amazon S3 / CDN)</label>
+                          <label>Direct Cloud Storage Download Link (Storj Link Share / Cloudflare R2 / S3)</label>
                           <input
                             name="storageUrl"
-                            placeholder="https://pub-xxxx.r2.dev/games/my-game-installer.exe"
+                            placeholder="https://link.storjshare.io/raw/.../games/.../index.html"
                             value={form.storageUrl}
                             onChange={handleChange}
                           />
@@ -1154,17 +1187,53 @@ function AdminDashboard({ user, onLogout, onLogin }) {
                       </div>
                     )}
 
-                    {/* Animated Progress Bar */}
+                    {/* Animated Resumable Progress Bar with Pause / Resume / Cancel */}
                     {isUploading && (
                       <div className="progress-container fade-in">
                         <div className="progress-meta-row">
                           <span className="status-text">{uploadStatusText}</span>
-                          <span className="speed-text">{uploadSpeed}</span>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            {uploadSpeed && <span className="speed-text">{uploadSpeed}</span>}
+                            {uploadEta && <span className="eta-text" style={{ fontSize: "0.8rem", color: "#a0aec0" }}>• {uploadEta}</span>}
+                          </div>
                         </div>
                         <div className="progress-track">
                           <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
                         </div>
-                        <div className="progress-percent-label">{uploadProgress}% Complete</div>
+                        <div className="progress-meta-row" style={{ marginTop: "8px" }}>
+                          <span className="progress-percent-label">{uploadProgress}% Complete</span>
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            {!isPaused ? (
+                              <button
+                                type="button"
+                                onClick={handlePauseUpload}
+                                style={{ padding: "4px 10px", fontSize: "0.75rem", background: "#f59e0b", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                              >
+                                ⏸ Pause
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handleResumeUpload}
+                                style={{ padding: "4px 10px", fontSize: "0.75rem", background: "#10b981", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                              >
+                                ▶ Resume
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={handleCancelUpload}
+                              style={{ padding: "4px 10px", fontSize: "0.75rem", background: "#ef4444", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                            >
+                              ✕ Cancel
+                            </button>
+                          </div>
+                        </div>
+                        {corsFallbackNotice && (
+                          <div style={{ marginTop: "6px", fontSize: "0.75rem", color: "#38bdf8", background: "rgba(56,189,248,0.1)", padding: "4px 8px", borderRadius: "4px" }}>
+                            ℹ️ Gateway CORS active: streaming chunk via server proxy fallback (memory &lt; 500 MB).
+                          </div>
+                        )}
                       </div>
                     )}
 
