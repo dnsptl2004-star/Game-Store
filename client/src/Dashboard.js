@@ -570,57 +570,6 @@ function Dashboard({ user = {}, onLogout, onLogin }) {
       case "home":
         return (
           <section className="dashboard-home">
-            <div className="catalog-header-bar">
-              <div>
-                <h2>Welcome, {user?.name || "Player 1"} 🎮</h2>
-                <p className="section-subtitle">
-                  Download PC games directly with high-speed download links. Verified clean & virus-scanned.
-                </p>
-              </div>
-              <div className="hero-actions">
-                <button onClick={() => setActiveTab("products")}>🎮 Browse All PC Games</button>
-              </div>
-            </div>
-
-            <div className="featured-platforms-strip">
-              <div
-                className="platform-card-pill"
-                onClick={() => {
-                  setCategoryFilter("Battle Royale");
-                  setActiveTab("products");
-                }}
-              >
-                <span>🔥</span> Free Fire & BGMI
-              </div>
-              <div
-                className="platform-card-pill"
-                onClick={() => {
-                  setCategoryFilter("Multiplayer Action");
-                  setActiveTab("products");
-                }}
-              >
-                <span>💣</span> Mini Militia & 2D Combat
-              </div>
-              <div
-                className="platform-card-pill"
-                onClick={() => {
-                  setCategoryFilter("Shooter");
-                  setActiveTab("products");
-                }}
-              >
-                <span>🎯</span> Valorant & Shooters
-              </div>
-              <div
-                className="platform-card-pill"
-                onClick={() => {
-                  setCategoryFilter("PC Games");
-                  setActiveTab("products");
-                }}
-              >
-                <span>💻</span> PC Windows Games
-              </div>
-            </div>
-
             <div className="section-title-wrap">
               <h3 className="section-title">🔥 Featured PC Games & Downloads</h3>
               <button className="view-all-link" onClick={() => setActiveTab("products")}>

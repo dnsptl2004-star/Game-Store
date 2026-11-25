@@ -21,7 +21,7 @@ const optionalOrProtect = (req, res, next) => {
 /**
  * POST /uploads/init
  * Authenticates user, checks size against MAX_GAME_SIZE_GB (10 GB) and USER_QUOTA_GB (50 GB),
- * initializes S3 multipart upload with key "tmp/{uploadId}.zip"
+ * initializes S3 multipart upload with key "zips/{gameId}.zip" directly for bit-perfect download package.
  */
 router.post("/init", optionalOrProtect, async (req, res) => {
   try {
@@ -57,9 +57,9 @@ router.post("/init", optionalOrProtect, async (req, res) => {
 
     const uploadId = uuidv4();
     const gameId = req.body.gameId || uuidv4();
-    const key = `tmp/${uploadId}.zip`;
+    const key = `zips/${gameId}.zip`;
 
-    // Initialize multipart upload on Storj / S3
+    // Initialize multipart upload on Storj / S3 directly at zips/{gameId}.zip
     const initResult = await storage.initMultipartUpload(key);
 
     const partSize = PART_SIZE_BYTES; // 64 MB
@@ -87,6 +87,7 @@ router.post("/init", optionalOrProtect, async (req, res) => {
         statusMessage: "Uploading chunks directly to storage...",
         progressPercent: 0,
         uploadId: initResult.uploadId,
+        zipKey: key,
       },
       { upsert: true, new: true }
     );
@@ -181,6 +182,7 @@ router.post("/complete", optionalOrProtect, async (req, res) => {
       game.status = "verifying";
       game.statusMessage = "Upload completed. Verifying game package security...";
       game.progressPercent = 10;
+      game.zipKey = key;
       if (gameData.title) game.title = gameData.title;
       if (gameData.description) game.description = gameData.description;
       if (gameData.version) game.version = gameData.version;
@@ -196,6 +198,7 @@ router.post("/complete", optionalOrProtect, async (req, res) => {
       .enqueue({
         gameId: effectiveGameId,
         uploadId,
+        key,
         title: game?.title || gameData.title || "Game Package",
         ownerId: req.user?.email || "admin@gamevault.local",
         sizeBytes: game?.sizeBytes || 0,
@@ -209,7 +212,7 @@ router.post("/complete", optionalOrProtect, async (req, res) => {
       success: true,
       gameId: effectiveGameId,
       status: "verifying",
-      message: "Upload completed. Background verification and extraction enqueued.",
+      message: "Upload completed. Package verification enqueued.",
     });
   } catch (err) {
     console.error("[UPLOAD COMPLETE ERROR]", err.message);

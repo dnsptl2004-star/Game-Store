@@ -298,6 +298,18 @@ export async function cleanupStaleUploads(maxAgeHours = 24) {
 }
 
 /**
+ * Copies an object within the storage bucket
+ */
+export async function copyObject(sourceKey, destKey) {
+  const command = new CopyObjectCommand({
+    Bucket: storageConfig.bucket,
+    CopySource: `${storageConfig.bucket}/${sourceKey}`,
+    Key: destKey,
+  });
+  return await s3Client.send(command);
+}
+
+/**
  * Generates public play URL using Storj Link Sharing or fallback play route
  */
 export function getPublicPlayUrl(gameId, relativePath = "index.html") {
@@ -324,6 +336,7 @@ export default {
   putObjectStream,
   deleteObject,
   deletePrefix,
+  copyObject,
   cleanupStaleUploads,
   getPublicPlayUrl,
 };

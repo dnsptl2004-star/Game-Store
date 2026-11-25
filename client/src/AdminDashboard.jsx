@@ -489,7 +489,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
     };
 
     const uploader = new StorjResumableUploader({
-      concurrency: 3,
+      concurrency: 4,
       maxRetries: 5,
       onProgress: ({ percent, speed, eta, partsCompleted, totalParts }) => {
         setUploadProgress(percent);
@@ -612,7 +612,7 @@ function AdminDashboard({ user, onLogout, onLogin }) {
     setUploadStatusText(`Initializing 10 GB Storj resumable upload for ${file.name}...`);
 
     const uploader = new StorjResumableUploader({
-      concurrency: 3,
+      concurrency: 4,
       maxRetries: 5,
       onProgress: ({ percent, speed, eta, partsCompleted, totalParts }) => {
         setUploadProgress(percent);
